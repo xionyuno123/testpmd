@@ -1,28 +1,10 @@
-/* 
-    每个stream都是一个四元组(tx_port,rx_port,tx_queue,rx_queue);
-    
-    命令行新增
-        --port_rxq=<port id>,<rxq id>
-        --port_txq=<port id>,<txq id>
-        未设置port_rxq或port_txq的设置成rxq和txq队列数量。不能超过dev_info.rx_max_queues
-    runtime cmdline
-        show stream stats all|<num>
-    修改的函数
-    testpmd.c/init_port_config()
-    testpmd.c/rxtx_port_config()
-    testpmd.c/init_fwd_streams()
-    config.c/fwd_config_setup()
-    testpmd.c/start_port()
-    新增的函数
-    config.c/streams_fwd_config_setup()
-    testpmd.c/set_def_stream_ip_addrs
-    testpmd.c/show_streams_stats(); 
- */
+
 #ifndef _STREAMS_H
 #define _STREAMS_H
 #include<rte_ether.h>
 uint16_t port_rxq[RTE_MAX_ETHPORTS];
 uint16_t port_txq[RTE_MAX_ETHPORTS];
+
 uint16_t nb_fwd_streams; 
 
 bool split_streams_enabled;
@@ -46,4 +28,38 @@ void clear_stream_stats_all();
 void show_stream_stats_all();
 void clear_stream_stats(uint16_t sm_id);
 void show_stream_stats(uint16_t sm_id);
+
+
+struct hash_key{
+    uint32_t src_ip_addr;
+    uint32_t dst_ip_addr;
+    uint16_t src_port;
+    uint16_t dst_port;
+    struct rte_ether_addr src_mac_addr;
+    struct rte_ether_addr dst_mac_addr;
+};
+
+struct hash_data{
+    struct hash_key key;
+    uint32_t hash_value;
+    uint64_t max_sq;
+    uint64_t rx_pkts;
+    uint16_t pkt_sz;
+    bool status; // 0 UNUSED 1 USING 
+    rte_spinlock_t spinlock;
+};
+
+struct packet_marker{
+    uint64_t magic_num;
+    uint64_t sq;
+};
+
+struct hash_data aggre_streams_stats[RTE_MAX_STREAMS];
+bool httpserver_enabled;
+extern rte_spinlock_t video_spinlock;
+extern volatile uint16_t udp_dst_port;
+extern uint64_t video_map[1024];
+extern uint64_t video_rx_pkts[RTE_MAX_ETHPORTS];
+extern uint64_t video_rx_bytes[RTE_MAX_ETHPORTS];
+#define HASH_INITVAL 0x7135efee
 #endif
